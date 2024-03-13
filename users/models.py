@@ -1,8 +1,9 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from datetime import datetime, timedelta
 import uuid
 import random
+from django.db import models
+from datetime import datetime, timedelta
+from django.contrib.auth.models import AbstractUser
+from rest_framework_simplejwt.tokens import RefreshToken
 # Create your models here.
 class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -83,6 +84,23 @@ class User(BaseModel,AbstractUser):
         self.check_hash_password()
 
         super(User,self).save(*args, **kwargs)
+
+
+    def create_confirmation_code(self, auth_type):
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        UserCodeVerification.objects.create(
+            code = code,
+            auth_type = auth_type,
+            user_id = self.id
+        )
+        return code
+
+    def token(self):
+        refresh = RefreshToken.for_user(self)
+        return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
 
 
 class UserCodeVerification(BaseModel):
